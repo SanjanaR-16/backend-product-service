@@ -1,11 +1,18 @@
 import { Stack, type StackProps } from "aws-cdk-lib";
 import * as lambda from "aws-cdk-lib/aws-lambda";
+import * as lambdaNode from "aws-cdk-lib/aws-lambda-nodejs";
 import * as apigateway from "aws-cdk-lib/aws-apigateway";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
+import * as sqs from "aws-cdk-lib/aws-sqs";
+import * as sns from "aws-cdk-lib/aws-sns";
+import * as snsSubscriptions from "aws-cdk-lib/aws-sns-subscriptions";
+import * as lambdaEventSources from "aws-cdk-lib/aws-lambda-event-sources";
 import * as path from "path";
 import { Construct } from "constructs";
 
 export class ProductServiceStack extends Stack {
+  public readonly catalogItemsQueue: sqs.Queue;
+
   constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props);
 
@@ -87,6 +94,51 @@ export class ProductServiceStack extends Stack {
     productByIdResource.addMethod(
       "GET",
       new apigateway.LambdaIntegration(getProductsById)
+    );
+
+    // SQS Queue
+    this.catalogItemsQueue = new sqs.Queue(this, "CatalogItemsQueue", {
+      queueName: "catalogItemsQueue",
+    });
+
+    // SNS Topic
+    const createProductTopic = new sns.Topic(this, "CreateProductTopic", {
+      topicName: "createProductTopic",
+    });
+
+    createProductTopic.addSubscription(
+      new snsSubscriptions.EmailSubscription("racharla.sanjana7@gmail.com")
+    );
+
+    // catalogBatchProcess Lambda
+    const catalogBatchProcess = new lambdaNode.NodejsFunction(
+      this,
+      "CatalogBatchProcessFunction",
+      {
+        runtime: lambda.Runtime.NODEJS_20_X,
+        entry: path.join(__dirname, "../lambda/catalogBatchProcess.ts"),
+        handler: "handler",
+        functionName: "catalogBatchProcess",
+        environment: {
+          PRODUCTS_TABLE: "products",
+          STOCK_TABLE: "stock",
+          SNS_TOPIC_ARN: createProductTopic.topicArn,
+        },
+      }
+    );
+
+    // Grant DynamoDB write permissions
+    productsTable.grantWriteData(catalogBatchProcess);
+    stockTable.grantWriteData(catalogBatchProcess);
+
+    // Grant SNS publish permissions
+    createProductTopic.grantPublish(catalogBatchProcess);
+
+    // SQS triggers catalogBatchProcess with batchSize 5
+    catalogBatchProcess.addEventSource(
+      new lambdaEventSources.SqsEventSource(this.catalogItemsQueue, {
+        batchSize: 5,
+      })
     );
   }
 }
