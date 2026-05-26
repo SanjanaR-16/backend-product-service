@@ -1,0 +1,29 @@
+{
+  "name": "authorization-service",
+  "version": "1.0.0",
+  "bin": {
+    "authorization-service": "bin/authorization-service.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc -w",
+    "cdk": "cdk",
+    "cdk:bootstrap": "cdk bootstrap",
+    "cdk:synth": "cdk synth",
+    "cdk:deploy": "cdk deploy --require-approval never",
+    "cdk:destroy": "cdk destroy --force"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.161",
+    "@types/node": "^22.0.0",
+    "aws-cdk": "2.1118.2",
+    "dotenv": "^16.0.0",
+    "esbuild": "^0.21.0",
+    "ts-node": "^10.9.2",
+    "typescript": "~5.9.3"
+  },
+  "dependencies": {
+    "aws-cdk-lib": "^2.248.0",
+    "constructs": "^10.5.0"
+  }
+}
