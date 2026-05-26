@@ -1,8 +1,10 @@
 import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
+import { SQSClient, SendMessageCommand } from "@aws-sdk/client-sqs";
 import csv from "csv-parser";
 import { Readable } from "stream";
 
 const s3Client = new S3Client({});
+const sqsClient = new SQSClient({});
 
 export const handler = async (event: any) => {
   try {
@@ -28,8 +30,13 @@ export const handler = async (event: any) => {
       await new Promise<void>((resolve, reject) => {
         stream
           .pipe(csv())
-          .on("data", (data: any) => {
-            console.log("Parsed record:", JSON.stringify(data));
+          .on("data", async (data: any) => {
+            await sqsClient.send(
+              new SendMessageCommand({
+                QueueUrl: process.env.SQS_QUEUE_URL!,
+                MessageBody: JSON.stringify(data),
+              })
+            );
           })
           .on("error", (error: any) => {
             console.error("Error parsing CSV:", error);

@@ -5,11 +5,16 @@ import * as apigateway from "aws-cdk-lib/aws-apigateway";
 import * as s3 from "aws-cdk-lib/aws-s3";
 import * as s3n from "aws-cdk-lib/aws-s3-notifications";
 import * as s3deploy from "aws-cdk-lib/aws-s3-deployment";
+import * as sqs from "aws-cdk-lib/aws-sqs";
 import * as path from "path";
 import { Construct } from "constructs";
 
+interface ImportServiceStackProps extends StackProps {
+  catalogItemsQueue: sqs.IQueue;
+}
+
 export class ImportServiceStack extends Stack {
-  constructor(scope: Construct, id: string, props?: StackProps) {
+  constructor(scope: Construct, id: string, props: ImportServiceStackProps) {
     super(scope, id, props);
 
     // S3 Bucket for import service
@@ -57,6 +62,7 @@ export class ImportServiceStack extends Stack {
         functionName: "importFileParser",
         environment: {
           BUCKET_NAME: importBucket.bucketName,
+          SQS_QUEUE_URL: props.catalogItemsQueue.queueUrl,
         },
       }
     );
@@ -64,6 +70,9 @@ export class ImportServiceStack extends Stack {
     // Grant S3 permissions to Lambda functions
     importBucket.grantReadWrite(importProductsFile);
     importBucket.grantReadWrite(importFileParser);
+
+    // Grant SQS send permissions to importFileParser
+    props.catalogItemsQueue.grantSendMessages(importFileParser);
 
     // S3 event notification for uploaded/ prefix
     importBucket.addEventNotification(

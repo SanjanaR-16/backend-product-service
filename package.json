@@ -1,0 +1,16 @@
+{
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.1048.0",
+    "@aws-sdk/client-sns": "^3.1048.0",
+    "@aws-sdk/client-sqs": "^3.1048.0",
+    "@aws-sdk/lib-dynamodb": "^3.1048.0",
+    "aws-sdk": "^2.1693.0",
+    "csv-parser": "^3.2.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^6.0.3",
+    "uuid": "^14.0.0"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.161"
+  }
+}
